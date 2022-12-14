@@ -1,0 +1,221 @@
+from pickle import TRUE
+from re import X
+import turtle
+import pygame 
+import os 
+import random
+pygame.font.init()
+
+#Load the button image 
+start_img = pygame.transform.scale(pygame.image.load(os.path.join('First spaceship game', 'start_btn.png')),(200,100))
+exit_img = pygame.transform.scale(pygame.image.load(os.path.join('First spaceship game', 'exit_btn.png')), (200,100))
+
+#Button Class 
+class Button():
+    def __init__(self,x,y,image):
+        button_height = image.get_height()
+        button_width = image.get_width()
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x,y)
+        self.clicked = False
+
+    def draw(self):
+        action = False
+
+        #Get the mouse position
+        mouse_pos = pygame.mouse.get_pos()
+
+        #Check if mouse is over the button and the clicked conditions
+        if self.rect.collidepoint(mouse_pos):
+            # This handles the condion of being clicked 0 means right mouse button
+            if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
+                self.clicked = True
+                action = True
+
+        
+            
+
+
+        #Draw the button on the screen
+        WIN.blit(self.image, (self.rect.x, self.rect.y))
+        return action
+
+#Create Button Instances 
+start_button = Button(150, 100, start_img)
+exit_button = Button(150, 400, exit_img)
+
+
+# Variables to set 
+WIDTH, HEIGHT  = 500, 700
+WHITE = (255 ,255 ,255)
+Black = (0 ,0, 0)
+Green = ( 0 , 255, 0)
+Red = (255, 0, 0)
+VEL = 4
+spaceship_width, spaceship_height = 50, 40
+BUL_VEL = 6
+Level_font= pygame.font.SysFont('comicsans', 30)
+Lives_font = pygame.font.SysFont('comicsans',30)
+
+#Creating a Class for the Enemy
+class Enemy(object):
+    def __init__(self, x , y , Health, Speed = 0, Points = 0):
+        self.Health = Health
+        self.x = x
+        self.y = y
+        self.Enemy_img = None
+        self.Laser_img = None
+        self.lasers = []
+        self.cool_down_counter = 0
+        if Health == 10:
+            self.Speed = 10
+            self.Point = 50
+        elif self.Health == 30:
+            self.Speed = 6
+            self.Point = 100
+        else:
+            self.Speed = 3
+            self.Point = 200
+    def draw(self, WIN):
+        pygame.draw.rect(WIN, (255,0,0), (self.x, self.y, 50,50))  
+
+
+
+
+
+
+
+#Sets window width and height
+WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Maths Revision Game!")
+#Sets black border  x  , y  ,  x-length, y-length
+border = pygame.Rect(0 , 500 , 700, 5)
+
+#Space backround 
+Space = pygame.transform.scale(pygame.image.load(os.path.join('First spaceship game', 'space.png')), (900, 700))
+
+#RED SPACESHIP
+Spaceship_image = pygame.image.load(
+    os.path.join('First spaceship game', 'SPACESHIP.png'))
+PLAYER = pygame.transform.rotate(pygame.transform.scale(
+    Spaceship_image, (spaceship_width, spaceship_height)), 180)
+
+
+def PLAYER_MOVEMENT(keys_pressed, PLAYER_RECT):
+    if keys_pressed[pygame.K_a] and PLAYER_RECT.x - VEL > 0: # Left
+        PLAYER_RECT.x -= VEL
+    if keys_pressed[pygame.K_d] and PLAYER_RECT.x + spaceship_width + VEL < WIDTH : # Right
+        PLAYER_RECT.x += VEL
+    if keys_pressed[pygame.K_w] and PLAYER_RECT.y - VEL >500: # Up
+        PLAYER_RECT.y -= VEL
+    if keys_pressed[pygame.K_s] and PLAYER_RECT.y + spaceship_height + VEL < 700: # Down
+        PLAYER_RECT.y += VEL
+
+
+def BULLET_FUNC(PLAYER_bullets, PLAYER_RECT):
+    for bullet in PLAYER_bullets:
+        bullet.y -= BUL_VEL
+        if bullet.y + 6 < 0:
+            PLAYER_bullets.remove(bullet)
+
+    
+
+#Subroutine for Drawing the window
+def draw_window(PLAYER_RECT, PLAYER_bullets, level, Lives,enemy_1):
+    
+
+    #Setting the Space backround
+    WIN.blit(Space, (0,0))
+    pygame.draw.rect(WIN,Black, border)
+    
+
+    # Draw Text 
+    Lives_Text = Lives_font.render("Lives: " + str(Lives), 1, WHITE)
+    Level_Text = Level_font.render("Level: " + str(level), 1, WHITE)
+    WIN.blit(Level_Text,  (5, HEIGHT - Level_Text.get_height() - 10))
+    WIN.blit(Lives_Text, (WIDTH - Lives_Text.get_width() - 10 , HEIGHT - Lives_Text.get_height() - 10))
+
+    WIN.blit(PLAYER, (PLAYER_RECT.x, PLAYER_RECT.y))
+    
+    #Drawing the enemy
+    enemy_1.draw(WIN)
+
+    for bullet in PLAYER_bullets:
+        pygame.draw.rect(WIN, Green, bullet)
+  
+    pygame.display.update()
+
+#Main subroutine conatining clock and recursion
+def main():
+    PLAYER_RECT = pygame.Rect(225,580, 10, 10)
+    Enemy_Rect = pygame.Rect(225,100,10,10)
+    # Creating a list for the bullets
+    PLAYER_bullets = [] 
+    Enemies = []
+    enemy_1 = Enemy(250, 100, 10)
+    clock = pygame.time.Clock()
+
+    running = True
+    level = 1
+    Lives = 3
+
+    
+
+    while running:
+
+                #Setting a cap on the FPS 
+        clock.tick(45)
+        for event in pygame.event.get():
+                    # Allows the user to quit the game
+                    if event.type == pygame.QUIT:
+                        running = False
+                        pygame.quit()
+                    # Doesn't allow the user to hold down the botten and sets a limit
+                    if event.type == pygame.KEYDOWN:
+                     if event.key == pygame.K_SPACE and len(PLAYER_bullets) < 4:
+                        bullet = pygame.Rect(PLAYER_RECT.x + spaceship_width/2-2, PLAYER_RECT.y, 4, 6)
+                        PLAYER_bullets.append(bullet)
+
+
+
+                # Allows the user to hold the key down to move and doesn't have to press it rapidly
+        keys_pressed = pygame.key.get_pressed()
+                
+        PLAYER_MOVEMENT(keys_pressed, PLAYER_RECT)
+        BULLET_FUNC(PLAYER_bullets, PLAYER_RECT)
+
+        draw_window(PLAYER_RECT, PLAYER_bullets, level, Lives, enemy_1)
+    main()
+
+
+
+def draw_Title_Screen(Space):
+
+    WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+    WIN.blit(Space, (0,0))
+    start_button.draw()
+    exit_button.draw()
+    pygame.display.update()
+    return start_button.draw() and exit_button.draw()
+
+def Title_Screen(Space):
+    run = True
+    while run == True:
+        WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+        WIN.blit(Space, (0,0))
+        #Clicked_Start = start_button.draw()
+        #Clicked_Exit = exit_button.draw()
+        if start_button.draw() == True:
+            main()
+        if  exit_button.draw() == True:
+            run = False 
+            pygame.quit()
+        pygame.display.update()
+    pygame.quit()
+
+        
+
+        
+#if __name__ == "__main__": 
+Title_Screen(Space)
